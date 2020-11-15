@@ -20,21 +20,6 @@ typedef DWORD(WINAPI* functypeRtlCreateUserThread)(
     LPVOID                    ClientID
     );
 
-//The prototype of NtCreateThreadEx from undocumented.ntinternals.com
-typedef DWORD(WINAPI* functypeNtCreateThreadEx)(
-    PHANDLE                 ThreadHandle,
-    ACCESS_MASK             DesiredAccess,
-    LPVOID                  ObjectAttributes,
-    HANDLE                  ProcessHandle,
-    LPTHREAD_START_ROUTINE  lpStartAddress,
-    LPVOID                  lpParameter,
-    BOOL                    CreateSuspended,
-    DWORD                   dwStackSize,
-    DWORD                   Unknown1,
-    DWORD                   Unknown2,
-    LPVOID                  Unknown3
-    );
-
 void injCreateRemoteThread();
 
 void injQueueUserApc();
@@ -177,6 +162,10 @@ void injSetWindowsHookEx() {
     printf("Path de la dll a inyectar: ");
     scanf_s("%s", dllPath, sizeof(dllPath));
 
+    char functionName[255];
+    printf("Nombre de la función de la DLL a inyectar: ");
+    scanf_s("%s", functionName, sizeof(functionName));
+
     // Cargamos la dll
     HMODULE dll = LoadLibraryA((LPCSTR)dllPath);
     if (dll == NULL) {
@@ -184,11 +173,22 @@ void injSetWindowsHookEx() {
         exit(EXIT_FAILURE);
     }
 
-    // Obtenemos la direcci�n de la funci�n dentro de la dll
-    HOOKPROC address = (HOOKPROC)GetProcAddress(dll, "meconnect");
+    // Obtenemos la direccion de la funcion dentro de la dll
+    HOOKPROC address = (HOOKPROC)GetProcAddress(dll, functionName);
+    if (address == NULL) {
+        printf("No se encontro la funcion en la DLL\n");
+        exit(EXIT_FAILURE);
+    }
 
     // Hookeamos la funcion
     HHOOK handle = SetWindowsHookEx(WH_KEYBOARD, address, dll, 0);
+    if (handle == NULL) {
+        printf("No se pudo establecer el hook\n");
+        exit(EXIT_FAILURE);
+    }
+
     getchar();
+    getchar(); // Se usan dos getchar para eliminar el \n que quedó en el buffer luego de usar scanf
+    printf("Unhooking\n");
     UnhookWindowsHookEx(handle);
 }
